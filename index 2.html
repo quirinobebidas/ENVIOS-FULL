@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Control FULL ML — #66254348</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;font-size:16px}
+  #app{max-width:480px;margin:0 auto;padding:12px}
+
+  .hdr{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #e8e8e0}
+  .ml-logo{width:38px;height:38px;background:#FFE600;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#333;flex-shrink:0}
+  .hdr h1{font-size:15px;font-weight:600;color:#1a1a1a}
+  .hdr p{font-size:12px;color:#777;margin-top:2px}
+
+  .tabs{display:flex;background:#e8e8e0;border-radius:10px;padding:3px;margin-bottom:12px}
+  .tab{flex:1;padding:8px 4px;font-size:13px;text-align:center;cursor:pointer;color:#666;background:transparent;border:none;border-radius:8px;font-family:inherit;font-weight:500;transition:all .2s}
+  .tab.on{background:#fff;color:#1a1a1a;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+  .pbar-wrap{background:#e8e8e0;border-radius:4px;height:5px;margin-bottom:12px;overflow:hidden}
+  .pbar-fill{height:100%;background:#1D9E75;border-radius:4px;transition:width .4s}
+
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+  .stat{background:#fff;border-radius:10px;padding:12px;border:1px solid #e8e8e0}
+  .stat .n{font-size:24px;font-weight:600}
+  .stat .l{font-size:11px;color:#888;margin-top:2px}
+  .stat.ok .n{color:#1D9E75}
+  .stat.miss .n{color:#D85A30}
+  .stat.warn .n{color:#BA7517}
+
+  .card{background:#fff;border-radius:12px;border:1px solid #e8e8e0;margin-bottom:12px;overflow:hidden}
+  .card-tabs{display:flex;border-bottom:1px solid #e8e8e0}
+  .ctab{flex:1;padding:10px;font-size:13px;text-align:center;cursor:pointer;color:#888;background:#fafaf8;border:none;font-family:inherit;font-weight:500;border-bottom:3px solid transparent}
+  .ctab.on{background:#fff;color:#1a1a1a;border-bottom-color:#FFE600}
+  .scan-inner{padding:12px}
+  .irow{display:flex;gap:8px}
+  .irow input{flex:1;font-size:15px;padding:10px 12px;border:1.5px solid #e0e0d8;border-radius:9px;background:#fafaf8;outline:none;color:#1a1a1a}
+  .irow input:focus{border-color:#999}
+  .irow button{padding:10px 18px;background:#FFE600;color:#333;border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px}
+  .msg{margin-top:10px;padding:11px 14px;border-radius:9px;font-size:15px;display:none;font-weight:700}
+  .msg.ok{background:#E1F5EE;color:#0a5c3f;border:1.5px solid #a8dfc8}
+  .msg.err{background:#FF3B30;color:#fff;border:1.5px solid #cc2f26}
+  .msg.dup{background:#FF9500;color:#fff;border:1.5px solid #cc7700}
+  @keyframes flashMsg{0%{transform:scale(1)}15%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .msg.err,.msg.dup{animation:flashMsg .2s ease}
+
+  #vcont{width:100%;border-radius:9px;overflow:hidden;background:#111;aspect-ratio:4/3;position:relative;display:none;margin-bottom:10px}
+  #vcont video{width:100%;height:100%;object-fit:cover;display:block}
+  .aim{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .aim-box{width:55%;aspect-ratio:1;border:2.5px solid #FFE600;border-radius:6px}
+  .cam-btn{width:100%;padding:10px;font-size:14px;background:#1a1a1a;color:#FFE600;border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:600;display:none}
+
+  .sec-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .fb{padding:5px 12px;font-size:12px;border:1.5px solid #e0e0d8;border-radius:20px;cursor:pointer;background:#fff;color:#666;font-family:inherit;font-weight:500}
+  .fb.on{background:#FFE600;color:#333;border-color:#FFE600;font-weight:700}
+
+  .list-card{background:#fff;border-radius:12px;border:1px solid #e8e8e0;overflow:hidden;margin-bottom:10px}
+  .lhdr{display:grid;gap:4px;padding:7px 12px;font-size:11px;color:#999;font-weight:600;border-bottom:1px solid #f0f0e8;background:#fafaf8}
+  .lhdr.b3{grid-template-columns:1fr 70px}
+  .lhdr.b4{grid-template-columns:1fr 60px 60px 72px}
+  .lrow{display:grid;gap:4px;padding:9px 12px;border-top:1px solid #f0f0e8;align-items:center;font-size:13px}
+  .lrow.b3{grid-template-columns:1fr 70px}
+  .lrow.b4{grid-template-columns:1fr 60px 60px 72px}
+  .nm{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1a1a1a;font-weight:500}
+  .sub{font-size:10px;color:#999;margin-top:1px}
+  .badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600}
+  .badge.ok{background:#E1F5EE;color:#0a5c3f}
+  .badge.pend{background:#f0f0ea;color:#666}
+  .badge.over{background:#FEECE7;color:#993C1D}
+  .badge.part{background:#FEF3DA;color:#7A4A0A}
+  .empty{text-align:center;padding:24px;color:#aaa;font-size:13px}
+
+  .exp-btn{width:100%;padding:11px;font-size:13px;border:1.5px solid #e0e0d8;border-radius:10px;cursor:pointer;background:#fff;color:#444;font-family:inherit;font-weight:500;margin-top:4px}
+  .exp-btn:hover{background:#fafaf8}
+
+  .mode-badge{display:inline-block;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:600;margin-left:4px}
+  .mode-badge.ml{background:#FFE600;color:#333}
+  .mode-badge.ean{background:#E6F1FB;color:#185FA5}
+
+  .warn-banner{background:#FEF3DA;border:1.5px solid #F5C87A;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#7A4A0A;line-height:1.5}
+  .warn-banner strong{display:block;margin-bottom:3px;font-size:14px}
+
+  .wa-btn{width:100%;padding:14px;font-size:15px;background:#25D366;color:#fff;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:700;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px}
+  .wa-btn:active{background:#1ebe5c}
+  .wa-icon{width:22px;height:22px;fill:#fff;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div class="warn-banner" id="cam-warning" style="display:none">
+  <strong>⚠ Abrí este archivo en Chrome</strong>
+  Para usar la cámara, guardá el archivo y abrilo directamente con Chrome (no desde WhatsApp ni otro app).
+</div>
+
+<div class="hdr">
+  <div class="ml-logo">ML</div>
+  <div>
+    <h1>Control de Envío FULL</h1>
+    <p id="hdr-sub">Envío #66254348 · 51 productos · 1163 unidades</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" onclick="showTab('bultos',this)">Bultos</button>
+  <button class="tab" onclick="showTab('pallets',this)">Pallets</button>
+  <button class="tab" onclick="showTab('productos',this)">Productos</button>
+</div>
+
+<div class="pbar-wrap"><div class="pbar-fill" id="pfill" style="width:0%"></div></div>
+
+<div class="stats" id="stats-area">
+  <div class="stat ok"><div class="n" id="s-ok">0</div><div class="l">Escaneados</div></div>
+  <div class="stat warn"><div class="n" id="s-pend">0</div><div class="l">Pendientes</div></div>
+  <div class="stat miss"><div class="n" id="s-dup">0</div><div class="l">Duplicados</div></div>
+  <div class="stat"><div class="n" id="s-total">0</div><div class="l">Total</div></div>
+</div>
+
+<!-- Scanner -->
+<div class="card">
+  <div class="card-tabs">
+    <button class="ctab on" onclick="switchScan('manual')">Escáner físico</button>
+    <button class="ctab" onclick="switchScan('camera')">Cámara</button>
+  </div>
+  <div class="scan-inner">
+    <div id="stab-manual">
+      <div class="irow">
+        <input type="text" id="inp" placeholder="Escanear o escribir código..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button onclick="go(document.getElementById('inp').value)">OK</button>
+      </div>
+    </div>
+    <div id="stab-camera" style="display:none">
+      <div id="vcont">
+        <video id="vid" autoplay playsinline muted></video>
+        <div class="aim"><div class="aim-box"></div></div>
+      </div>
+      <button class="cam-btn" id="cbtn" onclick="toggleCam()">Activar cámara</button>
+    </div>
+    <div class="msg" id="msgbox"></div>
+  </div>
+</div>
+
+<!-- Bultos section -->
+<div id="section-bultos">
+  <div class="sec-title">Bultos del envío</div>
+  <div class="filters" id="filt-bultos">
+    <button class="fb on" onclick="setFilter('all',this)">Todos</button>
+    <button class="fb" onclick="setFilter('ok',this)">Escaneados</button>
+    <button class="fb" onclick="setFilter('pend',this)">Pendientes</button>
+    <button class="fb" onclick="setFilter('dup',this)">Duplicados</button>
+  </div>
+  <div class="list-card">
+    <div class="lhdr b3"><span>Bulto</span><span style="text-align:center">Estado</span></div>
+    <div id="blist"></div>
+  </div>
+  <button class="exp-btn" onclick="exportar('bultos')">⬇ Exportar reporte de bultos (.csv)</button>
+</div>
+
+<!-- Pallets section -->
+<div id="section-pallets" style="display:none">
+  <div class="sec-title">Pallets del envío</div>
+  <div class="list-card">
+    <div class="lhdr b3"><span>Pallet</span><span style="text-align:center">Estado</span></div>
+    <div id="plist"></div>
+  </div>
+  <button class="exp-btn" onclick="exportar('pallets')">⬇ Exportar reporte de pallets (.csv)</button>
+</div>
+
+<!-- Productos section -->
+<div id="section-productos" style="display:none">
+  <div class="sec-title">Productos del envío</div>
+  <div class="filters" id="filt-prod">
+    <button class="fb on" onclick="setProdFilter('all',this)">Todos</button>
+    <button class="fb" onclick="setProdFilter('ok',this)">Completos</button>
+    <button class="fb" onclick="setProdFilter('pend',this)">Pendientes</button>
+  </div>
+  <div class="list-card">
+    <div class="lhdr b4"><span>Producto</span><span style="text-align:center">Esp.</span><span style="text-align:center">Real</span><span style="text-align:center">Estado</span></div>
+    <div id="prlist"></div>
+  </div>
+  <button class="exp-btn" onclick="exportar('productos')">⬇ Exportar reporte de productos (.csv)</button>
+</div>
+
+<!-- WhatsApp Report -->
+<div style="margin-top:4px;margin-bottom:16px">
+  <div class="sec-title">Enviar informe</div>
+  <button class="wa-btn" onclick="enviarWA()">
+    <svg class="wa-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Enviar informe por WhatsApp
+  </button>
+</div>
+
+</div><!-- end #app -->
+
+<script>
+// ─── DATOS DEL ENVÍO #66254348 ───────────────────────────────────────────────
+
+const BULTOS = Array.from({length:640},(_,i)=>'66254348/'+(i+1));
+
+const PALLETS = [
+  '66254348/PPD1','66254348/PPD2','66254348/PPD3','66254348/PPD4',
+  '66254348/PPD5','66254348/PPD6','66254348/PPD7','66254348/PPD8'
+];
+
+// mode: 'ml' = escanear por Código ML | 'ean' = por Código Universal
+const PRODUCTOS = [
+  {ml:'GVRF33485',ean:'7791250001345',sku:'2707',name:'Vodka Smirnoff 21 700ml',uds:12,mode:'ean'},
+  {ml:'CHCY87958',ean:'7798111990497',sku:'11332',name:'Champagne Casa Boher Extra Brut',uds:6,mode:'ean'},
+  {ml:'JJXU49059',ean:null,sku:'14703',name:'Champagne Veuve Clicquot + 2 Copas',uds:2,mode:'ml'},
+  {ml:'FXYJ59559',ean:'7790577003889',sku:'14097',name:'Vino Trumpeter Estuche X2 Bot.',uds:6,mode:'ml'},
+  {ml:'HYSD44725',ean:null,sku:'14737',name:'Champagne Pommery Brut Royal + Tapón',uds:12,mode:'ml'},
+  {ml:'IUYP29764',ean:'7795933202029',sku:'1952',name:'Pulpas Ananá Bahia Premium 900cc',uds:12,mode:'ean'},
+  {ml:'JQQR58292',ean:'5000299211243',sku:'14237',name:'Whisky Chivas Royal Salute + 2 Vasos',uds:3,mode:'ml'},
+  {ml:'PEVD60819',ean:null,sku:'14827',name:'Combo Vinos Caja 7 Botellas Moderno',uds:60,mode:'ml'},
+  {ml:'XVHE09293',ean:'7791200200828',sku:'1761',name:'Vodka Skyy Full',uds:12,mode:'ean'},
+  {ml:'DBGW58654',ean:'7791203001231',sku:'14095',name:'Vino Luigi Bosca Malbec Estuche 2 Bot.',uds:6,mode:'ml'},
+  {ml:'NVJT08253',ean:'7792410504324',sku:'185',name:'Tía María Licor Café 700ml',uds:6,mode:'ean'},
+  {ml:'OOHT30252',ean:'7795933026021',sku:'243',name:'Pulpas Bahia Maracuyá 900cc',uds:48,mode:'ml'},
+  {ml:'WWPF97908',ean:'7790577001663',sku:'405',name:'Vino Rutini Colección Cab/Malbec',uds:12,mode:'ean'},
+  {ml:'DIGK59206',ean:'5010314048907',sku:'14357',name:'Whisky Macallan 12 Triple Cask + 2 Vasos',uds:2,mode:'ml'},
+  {ml:'JPEH55513',ean:'7791200200552',sku:'13',name:'Aperitivo Cinzano Rosso 1000cc',uds:12,mode:'ean'},
+  {ml:'PKFA33162',ean:'7790717152026',sku:'4172',name:'Champagne Novecento Extra Brut',uds:90,mode:'ean'},
+  {ml:'UDIP35826',ean:'7794450090492',sku:'323',name:'Dv Catena Cabernet Malbec 750ml',uds:6,mode:'ean'},
+  {ml:'JTVE77084',ean:'3185370001233',sku:'14735',name:'Champagne Moet Chandon 750cc + Tapón',uds:1,mode:'ml'},
+  {ml:'ANGC56412',ean:'5000267114279',sku:'14552',name:'Johnnie Walker Blue Label + Estuche',uds:4,mode:'ml'},
+  {ml:'BJJC43619',ean:'5099873001370',sku:'14743',name:'Whisky Jack Daniels Honey + Whiskera',uds:5,mode:'ml'},
+  {ml:'CEGO75086',ean:'5010103800310',sku:'2062',name:'Whisky J&B Rare 750ml',uds:12,mode:'ean'},
+  {ml:'JNVU09467',ean:'5099873001370',sku:'13874',name:'Jack Daniels Honey Tennessee',uds:72,mode:'ean'},
+  {ml:'SUUI08367',ean:'7790577001663',sku:'14048',name:'Vino Rutini Cab/Malbec Estuche Regalo',uds:6,mode:'ml'},
+  {ml:'XUGQ58053',ean:'5010314048907',sku:'14356',name:'Whisky Macallan 12 Triple Cask + 6 Vasos',uds:10,mode:'ml'},
+  {ml:'QWRD39845',ean:'7790577007931',sku:'14098',name:'Estuche Vino Rutini Cab/Malbec X2',uds:50,mode:'ml'},
+  {ml:'ZJWE77764',ean:'7791560040126',sku:'83',name:'Espumante Mumm Extra Brut 750cc',uds:6,mode:'ean'},
+  {ml:'BIVC58024',ean:'5000267107776',sku:'14294',name:'Whisky JW Gold 750 + 2 Vasos',uds:12,mode:'ml'},
+  {ml:'CZNG35294',ean:'5011007003005',sku:'14802',name:'Whiskey Jameson 700ml + Esterilla',uds:8,mode:'ml'},
+  {ml:'NQVQ23430',ean:'7795933000526',sku:'1950',name:'Pulpas Frutilla Bahia 900cc',uds:120,mode:'ean'},
+  {ml:'WYGR03857',ean:'7640175740047',sku:'530',name:'Bombay Sapphire Gin 750ml',uds:48,mode:'ean'},
+  {ml:'DNSM68400',ean:'080432400432',sku:'14803',name:'Whisky Chivas Regal 1L + Esterilla',uds:5,mode:'ml'},
+  {ml:'QCWO43537',ean:null,sku:'14129',name:'Whisky Ballantine 700 + Vaso',uds:10,mode:'ml'},
+  {ml:'RNWJ81045',ean:'7791203001231',sku:'14826',name:'Vino Luigi Bosca Malbec Caja X6 + Set',uds:2,mode:'ml'},
+  {ml:'XZNN81050',ean:'7790577001663',sku:'14824',name:'Vino Rutini Cab/Malbec Caja X6 + Set',uds:2,mode:'ml'},
+  {ml:'GXOM37797',ean:'17794450090499',sku:'14825',name:'Vino Dv Catena Cab/Malb Caja 6 + Set',uds:2,mode:'ml'},
+  {ml:'BNLS85572',ean:'082184090473',sku:'14828',name:'Whisky Jack Daniels + 2 Vasos',uds:20,mode:'ml'},
+  {ml:'SQLS77021',ean:'5000299211243',sku:'912',name:'Chivas Royal Salute 21 Años 700ml',uds:6,mode:'ml'},
+  {ml:'JCJM72365',ean:'5010314048907',sku:'1154',name:'Whisky The Macallan Triple Cask 12 Años',uds:6,mode:'ean'},
+  {ml:'RVWB70863',ean:'5010314302863',sku:'3180',name:'Whisky Macallan Double Cask 12 Años',uds:6,mode:'ml'},
+  {ml:'BHBB56956',ean:'5000299225004',sku:'14242',name:'Whisky Chivas 18 Años + 2 Vasos',uds:3,mode:'ml'},
+  {ml:'DLXB59965',ean:'7798135850067',sku:'13535',name:'Vinos Bianchi Boutique Combo 7 Bot.',uds:200,mode:'ml'},
+  {ml:'WTHW83506',ean:'3047100056251',sku:'1968',name:'Aberlour 12 Años Single Malt 700ml',uds:24,mode:'ml'},
+  {ml:'JMBQ81928',ean:'081128025885',sku:'14812',name:'Whisky Woodford Reserve 700ml + Esterilla',uds:4,mode:'ml'},
+  {ml:'MMMQ27987',ean:'3047100056251',sku:'14527',name:'Whisky Aberlour + Vaso',uds:2,mode:'ml'},
+  {ml:'IQNR28876',ean:'7795933026021',sku:'243b',name:'Pulpas Bahia Maracuyá 900cc (B)',uds:12,mode:'ml'},
+  {ml:'KVOY60294',ean:null,sku:'14790',name:'Combo Vinos Caja 8 Botellas Boutique',uds:60,mode:'ml'},
+  {ml:'VZCF38477',ean:null,sku:'14333',name:'Neceser Eco Cuero Negro',uds:20,mode:'ml'},
+  {ml:'TZRS08564',ean:'6001495062508',sku:'306',name:'Licor Amarula Cream 750ml',uds:12,mode:'ean'},
+  {ml:'DMLI14758',ean:'7790290001254',sku:'882',name:'Fernet Branca 50ml Miniatura',uds:96,mode:'ml'},
+  {ml:'JXFK96650',ean:'080432402931',sku:'14830',name:'Whisky Chivas Regal 12 Años + Esterilla',uds:4,mode:'ean'},
+  {ml:'UFCE83339',ean:'5000299225004',sku:'12846',name:'Whisky Chivas 18 Años Gold Signature',uds:6,mode:'ml'},
+];
+
+// ─── ESTADO ──────────────────────────────────────────────────────────────────
+
+let curTab = 'bultos';
+let bFilter = 'all';
+let prodFilter = 'all';
+let bState = {}, pState = {}, bDups = {}, pDups = {};
+let prodScanned = {};
+let camOn = false, camStream = null, scanTimer = null;
+let lastScan = '', lastScanT = 0;
+
+// Índices de búsqueda rápida
+const bSet = new Set(BULTOS);
+const pSet = new Set(PALLETS);
+const byML = {}, byEAN = {};
+PRODUCTOS.forEach(p => {
+  byML[p.ml] = p;
+  if (p.ean) byEAN[p.ean] = p;
+  prodScanned[p.ml] = 0;
+});
+
+BULTOS.forEach(b => { bState[b] = false; bDups[b] = 0; });
+PALLETS.forEach(p => { pState[p] = false; pDups[p] = 0; });
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+
+function showTab(t, btn) {
+  curTab = t;
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
+  btn.classList.add('on');
+  ['bultos','pallets','productos'].forEach(s =>
+    document.getElementById('section-'+s).style.display = s === t ? '' : 'none'
+  );
+  updateStats(); renderCurrent();
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+
+function updateStats() {
+  let ok, pend, dups, total, pct;
+  if (curTab === 'bultos') {
+    ok = BULTOS.filter(b => bState[b]).length;
+    pend = BULTOS.length - ok;
+    dups = Object.values(bDups).reduce((a,b)=>a+b,0);
+    total = BULTOS.length;
+    pct = ok / total;
+  } else if (curTab === 'pallets') {
+    ok = PALLETS.filter(p => pState[p]).length;
+    pend = PALLETS.length - ok;
+    dups = Object.values(pDups).reduce((a,b)=>a+b,0);
+    total = PALLETS.length;
+    pct = ok / total;
+  } else {
+    const completos = PRODUCTOS.filter(p => prodScanned[p.ml] >= p.uds).length;
+    ok = completos;
+    pend = PRODUCTOS.length - completos;
+    dups = 0;
+    total = PRODUCTOS.reduce((a,p)=>a+p.uds,0);
+    pct = PRODUCTOS.reduce((a,p)=>a+prodScanned[p.ml],0) / total;
+  }
+  document.getElementById('s-ok').textContent = ok;
+  document.getElementById('s-pend').textContent = pend;
+  document.getElementById('s-dup').textContent = dups;
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('pfill').style.width = Math.round(pct*100)+'%';
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+
+function renderCurrent() {
+  if (curTab==='bultos') renderBultos();
+  else if (curTab==='pallets') renderPallets();
+  else renderProductos();
+}
+
+function renderBultos() {
+  const el = document.getElementById('blist');
+  let list = BULTOS;
+  if (bFilter==='ok') list = list.filter(b => bState[b]);
+  else if (bFilter==='pend') list = list.filter(b => !bState[b]);
+  else if (bFilter==='dup') list = list.filter(b => bDups[b] > 0);
+  if (!list.length) { el.innerHTML = '<div class="empty">No hay bultos en este estado</div>'; return; }
+  const shown = list.slice(0, 300);
+  el.innerHTML = shown.map(b => {
+    const sc = bState[b];
+    const dp = bDups[b] > 0;
+    const st = sc ? (dp ? 'over' : 'ok') : 'pend';
+    const lbl = sc ? (dp ? 'Duplicado' : 'Listo') : 'Pendiente';
+    const n = b.split('/')[1];
+    return `<div class="lrow b3"><div><div class="nm">Bulto ${n}</div><div class="sub">${b}</div></div><div style="text-align:center"><span class="badge ${st}">${lbl}</span>${dp?'<br><span style="font-size:10px;color:#BA7517">×'+(bDups[b]+1)+'</span>':''}</div></div>`;
+  }).join('') + (list.length > 300 ? `<div class="empty">... y ${list.length-300} más</div>` : '');
+}
+
+function renderPallets() {
+  document.getElementById('plist').innerHTML = PALLETS.map(p => {
+    const sc = pState[p];
+    const dp = pDups[p] > 0;
+    const st = sc ? (dp ? 'over' : 'ok') : 'pend';
+    const lbl = sc ? (dp ? 'Duplicado' : 'Listo') : 'Pendiente';
+    const n = p.split('/')[1];
+    return `<div class="lrow b3"><div><div class="nm">Pallet ${n}</div><div class="sub">${p}</div></div><div style="text-align:center"><span class="badge ${st}">${lbl}</span></div></div>`;
+  }).join('');
+}
+
+function getProdStatus(p) {
+  const s = prodScanned[p.ml];
+  if (s === 0) return 'pend';
+  if (s >= p.uds) return 'ok';
+  if (s > p.uds) return 'over';
+  return 'part';
+}
+
+function renderProductos() {
+  const el = document.getElementById('prlist');
+  let list = PRODUCTOS;
+  if (prodFilter==='ok') list = list.filter(p => getProdStatus(p)==='ok');
+  else if (prodFilter==='pend') list = list.filter(p => getProdStatus(p)!=='ok');
+  if (!list.length) { el.innerHTML = '<div class="empty">No hay productos en este estado</div>'; return; }
+  el.innerHTML = list.map(p => {
+    const st = getProdStatus(p);
+    const lbls = {ok:'Completo',pend:'Pendiente',over:'Excedido',part:'Parcial'};
+    const modeLabel = p.mode==='ml'
+      ? '<span class="mode-badge ml">Cód.ML</span>'
+      : `<span class="mode-badge ean">EAN</span>`;
+    return `<div class="lrow b4">
+      <div><div class="nm">${p.name} ${modeLabel}</div><div class="sub">${p.mode==='ml'?p.ml:(p.ean||'sin EAN')}</div></div>
+      <div style="text-align:center;font-weight:600">${p.uds}</div>
+      <div style="text-align:center;font-weight:600">${prodScanned[p.ml]}</div>
+      <div style="text-align:center"><span class="badge ${st}">${lbls[st]}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ─── FILTROS ──────────────────────────────────────────────────────────────────
+
+function setFilter(f, btn) {
+  bFilter = f;
+  document.querySelectorAll('#filt-bultos .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderBultos();
+}
+
+function setProdFilter(f, btn) {
+  prodFilter = f;
+  document.querySelectorAll('#filt-prod .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderProductos();
+}
+
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(type) {
+  try {
+    const ctx = getAudio();
+    const configs = {
+      ok:  [{freq:1200, dur:0.08, vol:0.4, delay:0}],
+      err: [{freq:220,  dur:0.18, vol:0.5, delay:0}, {freq:180, dur:0.18, vol:0.5, delay:0.2}],
+      dup: [{freq:600,  dur:0.1,  vol:0.4, delay:0}, {freq:400, dur:0.1,  vol:0.4, delay:0.13}],
+    };
+    (configs[type]||configs.ok).forEach(({freq,dur,vol,delay}) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = type==='ok' ? 'sine' : 'square';
+      gain.gain.setValueAtTime(vol, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + dur + 0.05);
+    });
+  } catch(e) {}
+}
+
+// ─── SCAN ─────────────────────────────────────────────────────────────────────
+
+function showMsg(txt, type) {
+  beep(type);
+  const el = document.getElementById('msgbox');
+  el.style.display = 'none';
+  // force reflow to restart animation
+  void el.offsetWidth;
+  el.textContent = txt;
+  el.className = 'msg ' + type;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.display = 'none', 3500);
+}
+
+function go(raw) {
+  const code = String(raw||'').trim();
+  if (!code) return;
+  const now = Date.now();
+  if (code === lastScan && now - lastScanT < 1500) return;
+  lastScan = code; lastScanT = now;
+  document.getElementById('inp').value = '';
+
+  // Bulto
+  if (bSet.has(code)) {
+    if (bState[code]) {
+      bDups[code]++;
+      showMsg('⚠ Duplicado — Bulto ' + code.split('/')[1], 'dup');
+    } else {
+      bState[code] = true;
+      showMsg('✓ Bulto ' + code.split('/')[1] + ' — registrado', 'ok');
+    }
+    if (curTab !== 'bultos') { showTab('bultos', document.querySelectorAll('.tab')[0]); }
+    else { updateStats(); renderBultos(); }
+    return;
+  }
+
+  // Pallet
+  if (pSet.has(code)) {
+    if (pState[code]) {
+      pDups[code]++;
+      showMsg('⚠ Duplicado — Pallet ' + code.split('/')[1], 'dup');
+    } else {
+      pState[code] = true;
+      showMsg('✓ Pallet ' + code.split('/')[1] + ' — registrado', 'ok');
+    }
+    if (curTab !== 'pallets') { showTab('pallets', document.querySelectorAll('.tab')[1]); }
+    else { updateStats(); renderPallets(); }
+    return;
+  }
+
+  // Producto por Código ML (Etiquetado obligatorio)
+  if (byML[code]) {
+    const p = byML[code];
+    prodScanned[p.ml]++;
+    const s = prodScanned[p.ml];
+    if (s > p.uds) showMsg('⚠ Excedido — ' + p.name + ' (' + s + '/' + p.uds + ')', 'dup');
+    else if (s === p.uds) showMsg('✓ Completo — ' + p.name, 'ok');
+    else showMsg('✓ ' + p.name + ' (' + s + '/' + p.uds + ')', 'ok');
+    if (curTab !== 'productos') { showTab('productos', document.querySelectorAll('.tab')[2]); }
+    else { updateStats(); renderProductos(); }
+    return;
+  }
+
+  // Producto por EAN/Código universal
+  if (byEAN[code]) {
+    const p = byEAN[code];
+    prodScanned[p.ml]++;
+    const s = prodScanned[p.ml];
+    if (s > p.uds) showMsg('⚠ Excedido — ' + p.name + ' (' + s + '/' + p.uds + ')', 'dup');
+    else if (s === p.uds) showMsg('✓ Completo — ' + p.name, 'ok');
+    else showMsg('✓ ' + p.name + ' (' + s + '/' + p.uds + ')', 'ok');
+    if (curTab !== 'productos') { showTab('productos', document.querySelectorAll('.tab')[2]); }
+    else { updateStats(); renderProductos(); }
+    return;
+  }
+
+  showMsg('✗ Código no encontrado: ' + code, 'err');
+}
+
+// Escáner físico: Enter o auto-detect por velocidad de input
+document.getElementById('inp').addEventListener('keydown', e => {
+  if (e.key === 'Enter') go(e.target.value);
+});
+document.getElementById('inp').addEventListener('input', function() {
+  clearTimeout(this._scanTimer);
+  const v = this.value.trim();
+  if (v.length > 4) {
+    this._scanTimer = setTimeout(() => {
+      const now = Date.now();
+      if (now - lastScanT > 200) go(v);
+    }, 80);
+  }
+});
+
+// ─── CÁMARA ───────────────────────────────────────────────────────────────────
+
+function switchScan(t) {
+  document.querySelectorAll('.ctab').forEach((el,i) => el.classList.toggle('on', (i===0&&t==='manual')||(i===1&&t==='camera')));
+  document.getElementById('stab-manual').style.display = t==='manual' ? '' : 'none';
+  document.getElementById('stab-camera').style.display = t==='camera' ? '' : 'none';
+  document.getElementById('cbtn').style.display = t==='camera' ? 'block' : 'none';
+  if (t === 'manual') stopCam();
+}
+
+function toggleCam() { camOn ? stopCam() : startCam(); }
+
+function startCam() {
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}})
+    .then(s => {
+      camStream = s;
+      const v = document.getElementById('vid');
+      v.srcObject = s;
+      document.getElementById('vcont').style.display = 'block';
+      document.getElementById('cbtn').textContent = 'Detener cámara';
+      camOn = true;
+      startDetect();
+    })
+    .catch(() => showMsg('No se pudo acceder a la cámara', 'err'));
+}
+
+function stopCam() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  if (scanTimer) { clearInterval(scanTimer); scanTimer = null; }
+  document.getElementById('vcont').style.display = 'none';
+  document.getElementById('cbtn').textContent = 'Activar cámara';
+  camOn = false;
+}
+
+function startDetect() {
+  if (!('BarcodeDetector' in window)) {
+    showMsg('BarcodeDetector no disponible en este navegador (usá Chrome/Android)', 'dup');
+    return;
+  }
+  const det = new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','qr_code','itf','upc_a','upc_e','data_matrix']});
+  const v = document.getElementById('vid');
+  scanTimer = setInterval(async () => {
+    if (v.readyState !== 4) return;
+    try {
+      const results = await det.detect(v);
+      if (results.length) go(results[0].rawValue);
+    } catch(e) {}
+  }, 600);
+}
+
+// ─── EXPORTAR ─────────────────────────────────────────────────────────────────
+
+function exportar(tipo) {
+  let rows, fn;
+  const fecha = new Date().toISOString().slice(0,10);
+  if (tipo === 'bultos') {
+    rows = [['Bulto','Código','Estado','Duplicados']];
+    BULTOS.forEach(b => rows.push([b.split('/')[1], b, bState[b]?'Escaneado':'Pendiente', bDups[b]]));
+    fn = 'bultos_66254348_' + fecha + '.csv';
+  } else if (tipo === 'pallets') {
+    rows = [['Pallet','Código','Estado','Duplicados']];
+    PALLETS.forEach(p => rows.push([p.split('/')[1], p, pState[p]?'Escaneado':'Pendiente', pDups[p]]));
+    fn = 'pallets_66254348_' + fecha + '.csv';
+  } else {
+    rows = [['Código ML','SKU','Producto','Modo','Esperado','Escaneado','Estado']];
+    PRODUCTOS.forEach(p => {
+      const st = {ok:'Completo',pend:'Pendiente',over:'Excedido',part:'Parcial'}[getProdStatus(p)];
+      rows.push([p.ml, p.sku, p.name, p.mode==='ml'?'Etiq.Obligatorio':'Cód.Universal', p.uds, prodScanned[p.ml], st]);
+    });
+    fn = 'productos_66254348_' + fecha + '.csv';
+  }
+  const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv, {type:'text/csv;charset=utf-8'}]));
+  a.download = fn; a.click();
+}
+
+// ─── WHATSAPP REPORT ──────────────────────────────────────────────────────────
+
+function enviarWA() {
+  const fecha = new Date().toLocaleDateString('es-AR');
+  const hora  = new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+
+  const bOk   = BULTOS.filter(b => bState[b]).length;
+  const bPend = BULTOS.length - bOk;
+  const bDup  = Object.values(bDups).reduce((a,b)=>a+b,0);
+
+  const pOk   = PALLETS.filter(p => pState[p]).length;
+  const pPend = PALLETS.length - pOk;
+
+  const prodComp = PRODUCTOS.filter(p => getProdStatus(p)==='ok').length;
+  const prodPend = PRODUCTOS.filter(p => getProdStatus(p)==='pend').length;
+  const prodPart = PRODUCTOS.filter(p => getProdStatus(p)==='part').length;
+  const prodOver = PRODUCTOS.filter(p => getProdStatus(p)==='over').length;
+
+  let lineas = [
+    '📦 *Informe de Envío FULL ML*',
+    `Envío: #66254348`,
+    `Fecha: ${fecha} ${hora}`,
+    '',
+    '*BULTOS*',
+    `✅ Escaneados: ${bOk} / ${BULTOS.length}`,
+    `⏳ Pendientes: ${bPend}`,
+    bDup > 0 ? `⚠️ Duplicados: ${bDup}` : null,
+    '',
+    '*PALLETS*',
+    `✅ Escaneados: ${pOk} / ${PALLETS.length}`,
+    `⏳ Pendientes: ${pPend}`,
+    '',
+    '*PRODUCTOS*',
+    `✅ Completos: ${prodComp}`,
+    prodPart > 0 ? `🟡 Parciales: ${prodPart}` : null,
+    prodOver > 0 ? `🔴 Excedidos: ${prodOver}` : null,
+    `⏳ Pendientes: ${prodPend}`,
+  ].filter(l => l !== null);
+
+  if (bPend > 0) {
+    const faltantes = BULTOS.filter(b => !bState[b]).slice(0, 20).map(b => b.split('/')[1]);
+    lineas.push('');
+    lineas.push('*Bultos pendientes:*');
+    lineas.push(faltantes.join(', ') + (bPend > 20 ? ` ... y ${bPend-20} más` : ''));
+  }
+
+  if (pPend > 0) {
+    const fPallets = PALLETS.filter(p => !pState[p]).map(p => p.split('/')[1]);
+    lineas.push('');
+    lineas.push('*Pallets pendientes:*');
+    lineas.push(fPallets.join(', '));
+  }
+
+  const texto = encodeURIComponent(lineas.join('\n'));
+  window.open('https://wa.me/541157001402?text=' + texto, '_blank');
+}
+
+// ─── DETECCIÓN DE CONTEXTO ────────────────────────────────────────────────────
+
+(function detectContext() {
+  const ua = navigator.userAgent || '';
+  const isWA = /WhatsApp/i.test(ua);
+  const isInApp = /FBAV|Instagram|Line|MicroMessenger/i.test(ua);
+  const isFile = location.protocol === 'file:';
+  if (isWA || isInApp) {
+    document.getElementById('cam-warning').style.display = 'block';
+  }
+})();
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+updateStats();
+renderBultos();
+renderProductos();
+</script>
+</body>
+</html>
