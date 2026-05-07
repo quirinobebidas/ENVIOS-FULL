@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Control FULL ML — Quirino Bebidas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;font-size:16px}
+  #app{max-width:480px;margin:0 auto;padding:12px}
+
+  /* LOGIN */
+  #login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:#f5f5f0}
+  .login-card{background:#fff;border-radius:16px;border:1px solid #e8e8e0;padding:28px 24px;width:100%;max-width:380px;text-align:center}
+  .login-logo{width:56px;height:56px;background:#FFE600;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#333;margin:0 auto 16px}
+  .login-card h2{font-size:20px;font-weight:700;margin-bottom:4px}
+  .login-card p{font-size:13px;color:#888;margin-bottom:24px}
+  .login-card input{width:100%;font-size:16px;padding:12px 14px;border:1.5px solid #e0e0d8;border-radius:10px;background:#fafaf8;outline:none;color:#1a1a1a;margin-bottom:10px;font-family:inherit}
+  .login-card input:focus{border-color:#999}
+  .login-btn{width:100%;padding:13px;background:#FFE600;color:#333;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:16px}
+  .login-err{color:#D85A30;font-size:13px;margin-top:8px;display:none}
+  .login-envio{font-size:12px;color:#aaa;margin-top:16px}
+
+  /* HEADER */
+  .hdr{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:12px;border:1px solid #e8e8e0}
+  .ml-logo{width:36px;height:36px;background:#FFE600;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#333;flex-shrink:0}
+  .hdr-info{flex:1;min-width:0}
+  .hdr h1{font-size:14px;font-weight:600}
+  .hdr p{font-size:11px;color:#777;margin-top:1px}
+  .user-chip{display:inline-flex;align-items:center;gap:5px;background:#f0f0ea;border-radius:20px;padding:3px 10px 3px 6px;font-size:11px;color:#555;font-weight:500;cursor:pointer;border:none;font-family:inherit;white-space:nowrap}
+
+  /* PROGRESO */
+  .pbar-wrap{background:#e8e8e0;border-radius:4px;height:6px;margin-bottom:12px;overflow:hidden}
+  .pbar-fill{height:100%;background:#1D9E75;border-radius:4px;transition:width .4s}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+  .stat{background:#fff;border-radius:10px;padding:12px;border:1px solid #e8e8e0}
+  .stat .n{font-size:24px;font-weight:600}
+  .stat .l{font-size:11px;color:#888;margin-top:2px}
+  .stat.ok .n{color:#1D9E75}
+  .stat.miss .n{color:#D85A30}
+  .stat.warn .n{color:#BA7517}
+
+  /* SCANNER */
+  .card{background:#fff;border-radius:12px;border:1px solid #e8e8e0;margin-bottom:12px;overflow:hidden}
+  .card-tabs{display:flex;border-bottom:1px solid #e8e8e0}
+  .ctab{flex:1;padding:10px;font-size:13px;text-align:center;cursor:pointer;color:#888;background:#fafaf8;border:none;font-family:inherit;font-weight:500;border-bottom:3px solid transparent}
+  .ctab.on{background:#fff;color:#1a1a1a;border-bottom-color:#FFE600}
+  .scan-inner{padding:12px}
+  .irow{display:flex;gap:8px}
+  .irow input{flex:1;font-size:15px;padding:10px 12px;border:1.5px solid #e0e0d8;border-radius:9px;background:#fafaf8;outline:none;color:#1a1a1a}
+  .irow input:focus{border-color:#999}
+  .irow button{padding:10px 18px;background:#FFE600;color:#333;border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px}
+  .msg{margin-top:10px;padding:11px 14px;border-radius:9px;font-size:15px;display:none;font-weight:700}
+  .msg.ok{background:#E1F5EE;color:#0a5c3f;border:1.5px solid #a8dfc8}
+  .msg.err{background:#FF3B30;color:#fff;border:1.5px solid #cc2f26}
+  .msg.dup{background:#FF9500;color:#fff;border:1.5px solid #cc7700}
+  @keyframes flashMsg{0%{transform:scale(1)}15%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .msg.err,.msg.dup{animation:flashMsg .2s ease}
+  #vcont{width:100%;border-radius:9px;overflow:hidden;background:#111;aspect-ratio:4/3;position:relative;display:none;margin-bottom:10px}
+  #vcont video{width:100%;height:100%;object-fit:cover;display:block}
+  .aim{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .aim-box{width:55%;aspect-ratio:1;border:2.5px solid #FFE600;border-radius:6px}
+  .cam-btn{width:100%;padding:10px;font-size:14px;background:#1a1a1a;color:#FFE600;border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:600;display:none}
+
+  /* LISTA */
+  .sec-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .fb{padding:5px 12px;font-size:12px;border:1.5px solid #e0e0d8;border-radius:20px;cursor:pointer;background:#fff;color:#666;font-family:inherit;font-weight:500}
+  .fb.on{background:#FFE600;color:#333;border-color:#FFE600;font-weight:700}
+  .list-card{background:#fff;border-radius:12px;border:1px solid #e8e8e0;overflow:hidden;margin-bottom:10px}
+  .lhdr{display:grid;gap:4px;padding:7px 12px;font-size:11px;color:#999;font-weight:600;border-bottom:1px solid #f0f0e8;background:#fafaf8;grid-template-columns:1fr 42px 42px 62px}
+  .lrow{display:grid;gap:4px;padding:9px 12px;border-top:1px solid #f0f0e8;align-items:center;font-size:13px;grid-template-columns:1fr 42px 42px 62px}
+  .nm{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1a1a1a;font-weight:500}
+  .sub{font-size:10px;color:#999;margin-top:1px;display:flex;align-items:center;gap:4px}
+  .badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600}
+  .badge.ok{background:#E1F5EE;color:#0a5c3f}
+  .badge.pend{background:#f0f0ea;color:#666}
+  .badge.over{background:#FEECE7;color:#993C1D}
+  .badge.part{background:#FEF3DA;color:#7A4A0A}
+  .badge.manual-done{background:#E6F1FB;color:#185FA5}
+  .empty{text-align:center;padding:24px;color:#aaa;font-size:13px}
+  .mode-badge{display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:700}
+  .mode-badge.ml{background:#FFE600;color:#333}
+  .mode-badge.ean{background:#E6F1FB;color:#185FA5}
+  .instr-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700}
+  .instr-badge.scan{background:#E1F5EE;color:#0a5c3f}
+  .instr-badge.manual{background:#E6F1FB;color:#185FA5}
+  .instr-badge.none{background:#f0f0ea;color:#aaa}
+
+  /* BOTONES */
+  .exp-btn{width:100%;padding:11px;font-size:13px;border:1.5px solid #e0e0d8;border-radius:10px;cursor:pointer;background:#fff;color:#444;font-family:inherit;font-weight:500;margin-top:4px}
+  .wa-btn{width:100%;padding:14px;font-size:15px;background:#25D366;color:#fff;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-weight:700;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px}
+  .wa-icon{width:22px;height:22px;fill:#fff;flex-shrink:0}
+
+  /* ADMIN PANEL */
+  .admin-panel{background:#fff;border:1px solid #e8e8e0;border-radius:12px;padding:14px;margin-bottom:12px}
+  .admin-panel-title{font-size:12px;font-weight:700;color:#555;margin-bottom:10px}
+  .pdf-upload{border:1.5px dashed #e0e0d8;border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:#fafaf8;position:relative}
+  .pdf-upload:hover{background:#f0f0ea;border-color:#ccc}
+  .pdf-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .pdf-upload p{font-size:13px;color:#888;margin-top:4px}
+  .pdf-upload .icon{font-size:22px}
+  .pdf-status{margin-top:10px;padding:9px 12px;border-radius:9px;font-size:13px;display:none;font-weight:500}
+  .pdf-status.ok{background:#E1F5EE;color:#0a5c3f}
+  .pdf-status.err{background:#FEECE7;color:#993C1D}
+  .pdf-status.loading{background:#f0f0ea;color:#555}
+  .reset-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid #f0f0e8}
+  .reset-row p{font-size:12px;color:#aaa}
+  .reset-btn{padding:7px 14px;font-size:12px;background:#FEECE7;color:#993C1D;border:1px solid #f5c4ba;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600}
+
+  /* INSTRUCCIONES ADMIN — lista de artículos para configurar */
+  .instr-section{background:#fff;border:1px solid #e8e8e0;border-radius:12px;padding:14px;margin-bottom:12px}
+  .instr-section-title{font-size:12px;font-weight:700;color:#555;margin-bottom:4px}
+  .instr-section-sub{font-size:11px;color:#aaa;margin-bottom:12px}
+  .instr-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid #f0f0e8}
+  .instr-row:first-of-type{border-top:none}
+  .instr-name{flex:1;min-width:0}
+  .instr-name .nm{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .instr-name .sub{font-size:10px;color:#aaa}
+  .instr-toggle{display:flex;gap:4px;flex-shrink:0}
+  .itbtn{padding:5px 10px;font-size:11px;font-weight:700;border:1.5px solid #e0e0d8;border-radius:8px;cursor:pointer;background:#fff;color:#aaa;font-family:inherit}
+  .itbtn.scan.on{background:#E1F5EE;color:#0a5c3f;border-color:#a8dfc8}
+  .itbtn.manual.on{background:#E6F1FB;color:#185FA5;border-color:#b3d4f5}
+  .instr-qty{font-size:11px;color:#185FA5;font-weight:600;flex-shrink:0}
+  .confirm-btn{width:100%;padding:12px;background:#1a1a1a;color:#FFE600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-weight:800;font-size:15px;margin-top:8px}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
+  .modal-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 20px 32px;animation:slideUp .25s ease}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-title{font-size:15px;font-weight:700;margin-bottom:3px}
+  .modal-sub{font-size:12px;color:#888;margin-bottom:18px}
+  .modal-tabs{display:flex;background:#f0f0ea;border-radius:9px;padding:3px;margin-bottom:16px}
+  .modal-tab{flex:1;padding:8px;font-size:13px;text-align:center;cursor:pointer;border:none;background:transparent;border-radius:7px;font-family:inherit;font-weight:500;color:#666}
+  .modal-tab.on{background:#fff;color:#1a1a1a;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  .modal-panel{display:none}.modal-panel.on{display:block}
+  .modal-label{font-size:12px;color:#888;font-weight:600;margin-bottom:5px}
+  .modal-input{width:100%;font-size:22px;font-weight:700;padding:10px 14px;border:1.5px solid #e0e0d8;border-radius:10px;text-align:center;color:#1a1a1a;font-family:inherit;outline:none;margin-bottom:10px}
+  .modal-input:focus{border-color:#FFE600}
+  .modal-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-bottom:10px}
+  .modal-row span{text-align:center;font-size:20px;color:#aaa}
+  .modal-result{text-align:center;font-size:13px;color:#888;margin-bottom:16px;min-height:20px}
+  .modal-confirm{width:100%;padding:13px;background:#FFE600;color:#333;border:none;border-radius:11px;cursor:pointer;font-family:inherit;font-weight:800;font-size:16px;margin-bottom:8px}
+  .modal-cancel{width:100%;padding:10px;background:transparent;color:#888;border:none;cursor:pointer;font-family:inherit;font-size:14px}
+
+  /* NO ENVIO */
+  .no-envio{text-align:center;padding:32px 20px;color:#aaa}
+  .no-envio .icon{font-size:40px;margin-bottom:12px}
+  .no-envio p{font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">ML</div>
+    <h2>Control FULL</h2>
+    <p>Quirino Bebidas · Ingresá tus datos para comenzar</p>
+    <input type="text" id="login-nombre" placeholder="Nombre" autocomplete="given-name">
+    <input type="text" id="login-apellido" placeholder="Apellido" autocomplete="family-name">
+    <input type="password" id="login-pass" placeholder="Contraseña">
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <div class="login-err" id="login-err">Usuario o contraseña incorrectos</div>
+    <div class="login-envio" id="login-envio-info">—</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+<div class="hdr">
+  <div class="ml-logo">ML</div>
+  <div class="hdr-info">
+    <h1>Control de Envío FULL</h1>
+    <p id="hdr-sub">Sin envío cargado</p>
+  </div>
+  <button class="user-chip" onclick="cerrarSesion()">👤 <span id="user-nombre">—</span></button>
+</div>
+
+<!-- ═══ PANEL ADMIN ═══ -->
+<div id="admin-panel" style="display:none">
+
+  <!-- 1. Cargar PDF -->
+  <div class="admin-panel">
+    <div class="admin-panel-title">📄 Paso 1 — Cargar PDF del envío</div>
+    <div class="pdf-upload">
+      <input type="file" id="pdf-input" accept=".pdf,.xlsx,.xls" onchange="cargarArchivo(this)">
+      <div class="icon">📄</div>
+      <strong style="font-size:14px">Cargar nuevo envío</strong>
+      <p>Subí el PDF o Excel de instrucciones de ML</p>
+    </div>
+    <div class="pdf-status" id="pdf-status"></div>
+    <div class="reset-row">
+      <p>Reiniciar escaneos del envío actual</p>
+      <button class="reset-btn" onclick="resetear()">🗑 Reiniciar</button>
+    </div>
+  </div>
+
+  <!-- 2. Instrucciones por producto -->
+  <div class="instr-section" id="instr-section" style="display:none">
+    <div class="instr-section-title">⚙️ Paso 2 — Definir cómo procesar cada artículo</div>
+    <div class="instr-section-sub">Para cada producto elegí: <b>Escáner</b> (el operario escanea) o <b>Manual</b> (vos ingresás la cantidad ahora)</div>
+    <div id="instr-list"></div>
+    <button class="confirm-btn" onclick="confirmarInstrucciones()">✓ Confirmar instrucciones y enviar a operarios</button>
+  </div>
+
+</div><!-- end admin-panel -->
+
+<!-- SIN ENVIO -->
+<div id="no-envio" style="display:none">
+  <div class="no-envio">
+    <div class="icon">📦</div>
+    <p>No hay ningún envío cargado.<br>El administrador debe subir el PDF del envío.</p>
+  </div>
+</div>
+
+<!-- PENDIENTE CONFIRMACIÓN (operarios esperando) -->
+<div id="pending-confirm" style="display:none">
+  <div class="no-envio">
+    <div class="icon">⏳</div>
+    <p>El administrador está configurando el envío.<br>Esperá a que confirme las instrucciones.</p>
+  </div>
+</div>
+
+<!-- CONTENIDO ENVIO (operarios) -->
+<div id="envio-content" style="display:none">
+  <div class="pbar-wrap"><div class="pbar-fill" id="pfill" style="width:0%"></div></div>
+  <div class="stats">
+    <div class="stat ok"><div class="n" id="s-ok">0</div><div class="l">Completos</div></div>
+    <div class="stat warn"><div class="n" id="s-pend">0</div><div class="l">Pendientes</div></div>
+    <div class="stat miss"><div class="n" id="s-over">0</div><div class="l">Excedidos</div></div>
+    <div class="stat"><div class="n" id="s-total">0</div><div class="l">Productos</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-tabs">
+      <button class="ctab on" onclick="switchScan('manual')">Escáner físico</button>
+      <button class="ctab" onclick="switchScan('camera')">Cámara</button>
+    </div>
+    <div class="scan-inner">
+      <div id="stab-manual">
+        <div class="irow">
+          <input type="text" id="inp" placeholder="Escanear o escribir código..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button onclick="go(document.getElementById('inp').value)">OK</button>
+        </div>
+      </div>
+      <div id="stab-camera" style="display:none">
+        <div id="vcont"><video id="vid" autoplay playsinline muted></video><div class="aim"><div class="aim-box"></div></div></div>
+        <button class="cam-btn" id="cbtn" onclick="toggleCam()">Activar cámara</button>
+      </div>
+      <div class="msg" id="msgbox"></div>
+    </div>
+  </div>
+
+  <div class="sec-title">Productos del envío</div>
+  <div class="filters">
+    <button class="fb on" onclick="setFiltro('all',this)">Todos</button>
+    <button class="fb" onclick="setFiltro('ok',this)">Completos</button>
+    <button class="fb" onclick="setFiltro('pend',this)">Pendientes</button>
+    <button class="fb" onclick="setFiltro('over',this)">Excedidos</button>
+  </div>
+  <div class="list-card">
+    <div class="lhdr"><span>Producto</span><span style="text-align:center">Esp.</span><span style="text-align:center">Real</span><span style="text-align:center">Estado</span></div>
+    <div id="prlist"></div>
+  </div>
+  <button class="exp-btn" onclick="exportar()">⬇ Exportar reporte (.csv)</button>
+
+  <div style="margin-top:10px;margin-bottom:20px">
+    <div class="sec-title">Enviar informe</div>
+    <button class="wa-btn" onclick="enviarWA()">
+      <svg class="wa-icon" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Enviar informe por WhatsApp
+    </button>
+  </div>
+</div>
+
+</div><!-- end #app -->
+
+<!-- MODAL CANTIDAD MANUAL (admin) -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)cerrarModal()">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-tabs">
+      <button class="modal-tab on" onclick="switchModalTab('total',this)">Cantidad total</button>
+      <button class="modal-tab" onclick="switchModalTab('bultos',this)">Por bultos</button>
+    </div>
+    <div class="modal-panel on" id="mpanel-total">
+      <div class="modal-label">Total de unidades</div>
+      <input class="modal-input" type="number" id="m-total" min="0" placeholder="0" oninput="calcTotal()">
+      <div class="modal-result" id="m-result-total"></div>
+    </div>
+    <div class="modal-panel" id="mpanel-bultos">
+      <div class="modal-row">
+        <div><div class="modal-label">Bultos</div><input class="modal-input" type="number" id="m-bultos" min="0" placeholder="0" oninput="calcBultos()"></div>
+        <span>×</span>
+        <div><div class="modal-label">Uds./bulto</div><input class="modal-input" type="number" id="m-uds" min="0" placeholder="0" oninput="calcBultos()"></div>
+      </div>
+      <div class="modal-result" id="m-result-bultos"></div>
+    </div>
+    <button class="modal-confirm" onclick="confirmarModal()">✓ Confirmar</button>
+    <button class="modal-cancel" onclick="cerrarModal()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── USUARIOS ─────────────────────────────────────────────────────────────────
+const USUARIOS=[
+  {nombre:'Admin',  apellido:'Quirino',pass:'quirino2024',admin:true},
+  {nombre:'Javier', apellido:'Carril', pass:'deposito1',  admin:false},
+  {nombre:'Control',apellido:'Full',   pass:'deposito2',  admin:false},
+];
+
+// ── FIREBASE CONFIG ───────────────────────────────────────────────────────────
+const FB_URL = 'https://quirino-full-default-rtdb.firebaseio.com/envio.json';
+
+async function jbLeer(){
+  try{
+    const r = await fetch(FB_URL);
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+async function jbGuardar(data){
+  try{
+    const r = await fetch(FB_URL,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  }catch(e){ return false; }
+}
+
+function mostrarBinID(){}
+
+// ── ESTADO ───────────────────────────────────────────────────────────────────
+let PRODUCTOS=[], ENVIO_ID='', prodScanned={};
+let instrucciones={};
+let instrStatus='';
+let byML={}, byEAN={};
+let filtro='all', camOn=false, camStream=null, scanTimer=null;
+let lastScan='', lastScanT=0;
+let usuarioActual=null, modalML=null, modalTab='total';
+let syncTimer=null;
+
+// ── PERSISTENCIA COMPARTIDA ───────────────────────────────────────────────────
+function estadoCompleto(){
+  return {envioId:ENVIO_ID, productos:PRODUCTOS, instrucciones, instrStatus, scanned:prodScanned};
+}
+
+async function guardarTodo(){
+  return await jbGuardar(estadoCompleto());
+}
+
+async function cargarTodo(){
+  const d = await jbLeer();
+  if(!d || !d.envioId) return false;
+  ENVIO_ID    = d.envioId;
+  PRODUCTOS   = d.productos || [];
+  instrucciones = d.instrucciones || {};
+  instrStatus = d.instrStatus || 'pending';
+  prodScanned = d.scanned || {};
+  reconstruirIndices();
+  return true;
+}
+
+function reconstruirIndices(){
+  byML={}; byEAN={};
+  PRODUCTOS.forEach(p=>{byML[p.ml]=p; if(p.ean) byEAN[p.ean]=p; if(!prodScanned[p.ml]) prodScanned[p.ml]=0;});
+}
+
+async function resetear(){
+  if(!confirm('¿Reiniciar todos los escaneos y volver a configurar instrucciones?')) return;
+  PRODUCTOS=[]; ENVIO_ID=''; prodScanned={}; instrucciones={}; instrStatus='';
+  await guardarTodo();
+  showPDFStatus('Reiniciado correctamente','ok');
+  actualizarUI();
+}
+
+// Sync automático para operarios (cada 10 seg)
+function iniciarSync(){
+  if(syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(async()=>{
+    if(!usuarioActual || usuarioActual.admin) return;
+    const ok = await cargarTodo();
+    if(ok) actualizarUI();
+  }, 10000);
+}
+
+// ── LECTOR ARCHIVO (PDF o Excel) ──────────────────────────────────────────────
+async function cargarArchivo(input){
+  const file=input.files[0]; if(!file) return;
+  showPDFStatus('⏳ Leyendo archivo...','loading');
+  try{
+    let result;
+    if(file.name.match(/\.xlsx?$/i)){
+      result = await parsearExcel(file);
+    } else {
+      result = await parsearPDFFile(file);
+    }
+    if(!result||result.productos.length===0){
+      showPDFStatus('❌ No se pudieron extraer productos. Verificá que sea el archivo correcto de ML.','err'); return;
+    }
+    ENVIO_ID=result.envioId; PRODUCTOS=result.productos;
+    prodScanned={}; instrucciones={}; instrStatus='pending';
+    reconstruirIndices();
+    showPDFStatus('⏳ Guardando en la nube...','loading');
+    const ok = await guardarTodo();
+    if(!ok){ showPDFStatus('❌ Error al guardar. Verificá tu conexión.','err'); return; }
+    showPDFStatus(`✅ Envío #${ENVIO_ID} cargado — ${PRODUCTOS.length} productos, ${PRODUCTOS.reduce((a,p)=>a+p.uds,0)} unidades. Ahora definí cómo procesar cada artículo.`,'ok');
+    actualizarUI(); input.value='';
+  }catch(e){
+    console.error(e);
+    showPDFStatus('❌ Error al leer el archivo: '+e.message,'err');
+  }
+}
+
+async function parsearExcel(file){
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+  // Extraer número de envío del encabezado
+  let envioId = 'DESCONOCIDO';
+  for(const row of rows.slice(0,5)){
+    for(const cell of row){
+      const m = String(cell).match(/Env[íi]o\s*#?(\d{6,12})/i);
+      if(m){ envioId=m[1]; break; }
+    }
+    if(envioId!=='DESCONOCIDO') break;
+  }
+
+  const productos=[];
+  for(const row of rows){
+    const cell0 = String(row[0]||'');
+    const cell1 = row[1];
+    const cell2 = String(row[2]||'');
+    const mlM = cell0.match(/Código\s+ML:\s*([A-Z]{4}\d{5})/i);
+    if(!mlM) continue;
+    const ml = mlM[1];
+    const eanM = cell0.match(/Código\s+universal:\s*([\w\.]+)/i);
+    const ean = (eanM && eanM[1]!=='N' && eanM[1]!=='N/A' && eanM[1].length>3) ? eanM[1] : null;
+    const skuM = cell0.match(/SKU:\s*(\d+)/i);
+    const sku = skuM ? skuM[1] : '';
+    const lines = cell0.split(/\n/).map(l=>l.trim()).filter(l=>l&&!l.startsWith('Código')&&l!=='SUPERMERCADO');
+    const name = (lines[0]||ml).substring(0,80);
+    const uds = cell1 ? parseInt(parseFloat(String(cell1))) : 1;
+    const mode = /obligatorio/i.test(cell2) ? 'ml' : 'ean';
+    if(ml && uds>0) productos.push({ml,ean,sku,name,uds,mode});
+  }
+  return {envioId, productos};
+}
+
+async function parsearPDFFile(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let txt='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const pg=await pdf.getPage(i);
+    const ct=await pg.getTextContent();
+    txt+=ct.items.map(it=>it.str).join(' ')+'\n';
+  }
+  return parsearPDF(txt);
+}
+
+function parsearPDF(text){
+  const envioMatch=text.match(/Env[íi]o\s*#?(\d{6,12})/i);
+  const envioId=envioMatch?envioMatch[1]:'DESCONOCIDO';
+  const productos=[];
+
+  const bloqueRe=/Código\s+ML:\s*([A-Z]{4}\d{5})\s+Código\s+universal:\s*([\w\/\.\-]+|N\/A)\s+SKU:\s*(\d+)\s+([\s\S]+?)(?=Código\s+ML:|Anexo\s+de\s+reglamentacion|$)/gi;
+  const allMatches=[...text.matchAll(bloqueRe)];
+
+  allMatches.forEach((match,idx)=>{
+    const ml=match[1].trim(), eanRaw=match[2].trim(), sku=match[3].trim(), resto=match[4];
+
+    // Nombre
+    let name=resto.replace(/\s+/g,' ').trim();
+    name=name.replace(/\s*(SUPERMERCADO|Etiquetado\s+obligatorio|Código\s+universal|La\s+fecha|No\s+suelen|Deben\s+cumplir|Cada\s+producto|PRODUCTO|UNIDADES|IDENTIFICACIÓN)[\s\S]*/i,'').trim();
+    name=name.replace(/^[\•\s\d]+/,'').trim();
+    if(name.length>80) name=name.substring(0,80).replace(/\s\S+$/,'').trim();
+    if(!name) name=ml;
+
+    // Unidades — 4 estrategias:
+    // 1) Número antes de "Código universal" o "Etiquetado obligatorio" en el bloque
+    let udsMatch=resto.match(/(\d{1,4})\s+(?:Código\s+universal|Etiquetado\s+obligatorio)/i);
+    // 2) Número al inicio del bloque antes de letra mayúscula (nombre)
+    if(!udsMatch) udsMatch=resto.match(/^[\s\•\n]*(\d{1,4})\s+[A-ZÁÉÍÓÚ]/);
+    // 3) Número justo antes del inicio de este bloque (fin de bloque anterior / cambio de página)
+    if(!udsMatch && idx>0){
+      const prevEnd=allMatches[idx-1].index+allMatches[idx-1][0].length;
+      const preText=text.substring(prevEnd, match.index).replace(/\s+/g,' ').trim();
+      const preM=preText.match(/(\d{1,4})\s*$/);
+      if(preM) udsMatch=preM;
+    }
+    // 4) Número después de "SUPERMERCADO"
+    if(!udsMatch) udsMatch=resto.match(/SUPERMERCADO\s+(\d{1,4})\b/i);
+    const uds=udsMatch?parseInt(udsMatch[1]):1;
+
+    const esObligatorio=/Etiquetado\s+obligatorio/i.test(resto);
+    const mode=esObligatorio?'ml':'ean';
+    const ean=(eanRaw==='N/A'||!eanRaw||eanRaw.length<3)?null:eanRaw;
+    if(ml&&uds>0) productos.push({ml,ean,sku,name,uds,mode});
+  });
+
+  return {envioId,productos};
+}
+
+function showPDFStatus(msg,type){
+  const el=document.getElementById('pdf-status');
+  el.textContent=msg; el.className='pdf-status '+type; el.style.display='block';
+}
+
+document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter') doLogin();});
+
+// ── ACTUALIZAR UI ─────────────────────────────────────────────────────────────
+function actualizarUI(){
+  const esAdmin=usuarioActual&&usuarioActual.admin;
+  const tieneEnvio=PRODUCTOS.length>0;
+  const confirmado=instrStatus==='confirmed';
+
+  // Admin siempre ve su panel
+  document.getElementById('admin-panel').style.display=esAdmin?'block':'none';
+  // Sección instrucciones: solo admin cuando hay envío cargado
+  document.getElementById('instr-section').style.display=(esAdmin&&tieneEnvio)?'block':'none';
+
+  // Contenido según estado
+  document.getElementById('no-envio').style.display=(!tieneEnvio&&!esAdmin)?'block':'none';
+  document.getElementById('pending-confirm').style.display=(tieneEnvio&&!confirmado&&!esAdmin)?'block':'none';
+  document.getElementById('envio-content').style.display=(tieneEnvio&&(confirmado||esAdmin))?'block':'none';
+
+  if(tieneEnvio){
+    const tot=PRODUCTOS.reduce((a,p)=>a+p.uds,0);
+    document.getElementById('hdr-sub').textContent=`Envío #${ENVIO_ID} · ${PRODUCTOS.length} prod. · ${tot} uds`;
+  } else {
+    document.getElementById('hdr-sub').textContent='Sin envío cargado';
+  }
+
+  // Login info
+  if(tieneEnvio) document.getElementById('login-envio-info').textContent='Envío #'+ENVIO_ID+(confirmado?' · Listo para escanear':' · Configurando...');
+  else document.getElementById('login-envio-info').textContent='Sin envío activo';
+
+  if(esAdmin&&tieneEnvio) renderInstrucciones();
+  if(tieneEnvio&&(confirmado||esAdmin)){ aplicarManuales(); updateStats(); renderProductos(); }
+}
+
+// ── INSTRUCCIONES ADMIN ───────────────────────────────────────────────────────
+function renderInstrucciones(){
+  const el=document.getElementById('instr-list');
+  el.innerHTML=PRODUCTOS.map(p=>{
+    const instr=instrucciones[p.ml]||{tipo:'',qty:0};
+    const scanOn=instr.tipo==='scan'?'on':'';
+    const manualOn=instr.tipo==='manual'?'on':'';
+    const qtyLabel=instr.tipo==='manual'&&instr.qty>0?`<span class="instr-qty">${instr.qty} uds</span>`:'';
+    return `<div class="instr-row">
+      <div class="instr-name">
+        <div class="nm">${p.name}</div>
+        <div class="sub"><span class="mode-badge ${p.mode}">${p.mode==='ml'?'ML':'EAN'}</span> ${p.mode==='ml'?p.ml:(p.ean||'—')} · ${p.uds} uds</div>
+      </div>
+      ${qtyLabel}
+      <div class="instr-toggle">
+        <button class="itbtn scan ${scanOn}" onclick="setInstr('${p.ml}','scan')">Escáner</button>
+        <button class="itbtn manual ${manualOn}" onclick="setInstr('${p.ml}','manual')">Manual</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setInstr(ml, tipo){
+  instrucciones[ml]={tipo:tipo, qty:0};
+  guardarTodo();
+  renderInstrucciones();
+}
+
+async function confirmarInstrucciones(){
+  const sinAsignar=PRODUCTOS.filter(p=>!instrucciones[p.ml]||!instrucciones[p.ml].tipo);
+  if(sinAsignar.length>0){
+    alert(`Faltan definir instrucciones para ${sinAsignar.length} producto(s). Asigná Escáner o Manual a todos.`);
+    return;
+  }
+  instrStatus='confirmed';
+  showPDFStatus('⏳ Guardando y enviando a operarios...','loading');
+  const ok = await guardarTodo();
+  if(!ok){ showPDFStatus('❌ Error al guardar. Verificá tu conexión.','err'); instrStatus='pending'; return; }
+  actualizarUI();
+  showPDFStatus('✅ Instrucciones confirmadas. Los operarios ya pueden trabajar.','ok');
+}
+
+function aplicarManuales(){
+  // No hace nada — el operario carga todo, manual o escáner
+}
+
+// ── RENDER PRODUCTOS (operarios) ──────────────────────────────────────────────
+function getProdStatus(p){
+  const s=prodScanned[p.ml]||0;
+  if(s===0) return 'pend'; if(s>p.uds) return 'over'; if(s>=p.uds) return 'ok'; return 'part';
+}
+function updateStats(){
+  const ok=PRODUCTOS.filter(p=>getProdStatus(p)==='ok').length;
+  const pend=PRODUCTOS.filter(p=>['pend','part'].includes(getProdStatus(p))).length;
+  const over=PRODUCTOS.filter(p=>getProdStatus(p)==='over').length;
+  const tot=PRODUCTOS.reduce((a,p)=>a+p.uds,0);
+  const esc=PRODUCTOS.reduce((a,p)=>a+Math.min(prodScanned[p.ml]||0,p.uds),0);
+  document.getElementById('s-ok').textContent=ok;
+  document.getElementById('s-pend').textContent=pend;
+  document.getElementById('s-over').textContent=over;
+  document.getElementById('s-total').textContent=PRODUCTOS.length;
+  document.getElementById('pfill').style.width=tot>0?Math.round(esc/tot*100)+'%':'0%';
+}
+function renderProductos(){
+  const el=document.getElementById('prlist');
+  let list=PRODUCTOS;
+  if(filtro==='ok')   list=list.filter(p=>getProdStatus(p)==='ok');
+  if(filtro==='pend') list=list.filter(p=>['pend','part'].includes(getProdStatus(p)));
+  if(filtro==='over') list=list.filter(p=>getProdStatus(p)==='over');
+  const lbls={ok:'Completo',pend:'Pendiente',over:'Excedido',part:'Parcial'};
+  el.innerHTML=list.map(p=>{
+    const st=getProdStatus(p);
+    const instr=instrucciones[p.ml];
+    const esManual=instr&&instr.tipo==='manual';
+    const mb=p.mode==='ml'?'<span class="mode-badge ml">ML</span>':'<span class="mode-badge ean">EAN</span>';
+    const ib=esManual
+      ?'<span class="instr-badge manual">Manual</span>'
+      :'<span class="instr-badge scan">Escáner</span>';
+    const codSub=p.mode==='ml'?p.ml:(p.ean||'—');
+    // Botón de ingreso manual para artículos marcados como Manual
+    const manualBtn=esManual
+      ?`<span class="badge pend" style="cursor:pointer" onclick="abrirModal('${p.ml}',false)">✏️ Ingresar</span>`
+      :`<span class="badge ${st}">${{ok:'Completo',pend:'Pendiente',over:'Excedido',part:'Parcial'}[st]}</span>`;
+    return `<div class="lrow"><div><div class="nm">${p.name}</div><div class="sub">${mb} ${ib} ${codSub}</div></div><div style="text-align:center;font-weight:600">${p.uds}</div><div style="text-align:center;font-weight:600">${prodScanned[p.ml]||0}</div><div style="text-align:center">${manualBtn}</div></div>`;
+  }).join('')||'<div class="empty">No hay productos en este estado</div>';
+}
+function setFiltro(f,btn){
+  filtro=f;
+  document.querySelectorAll('.filters .fb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); renderProductos();
+}
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+let audioCtx=null;
+function getAudio(){if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx;}
+function beep(type){
+  try{
+    const ctx=getAudio();
+    const cfg={ok:[{f:1200,d:.08,v:.4,t:0}],err:[{f:220,d:.18,v:.5,t:0},{f:180,d:.18,v:.5,t:.2}],dup:[{f:600,d:.1,v:.4,t:0},{f:400,d:.1,v:.4,t:.13}]};
+    (cfg[type]||cfg.ok).forEach(({f,d,v,t})=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=f;o.type=type==='ok'?'sine':'square';g.gain.setValueAtTime(v,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+d);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+d+.05);});
+  }catch(e){}
+}
+
+// ── SCAN ──────────────────────────────────────────────────────────────────────
+function showMsg(txt,type){
+  beep(type);
+  const el=document.getElementById('msgbox');
+  el.style.display='none'; void el.offsetWidth;
+  el.textContent=txt; el.className='msg '+type; el.style.display='block';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.display='none',3500);
+}
+function go(raw){
+  const code=String(raw||'').trim();
+  if(!code||!PRODUCTOS.length) return;
+  const now=Date.now();
+  if(code===lastScan&&now-lastScanT<1500) return;
+  lastScan=code; lastScanT=now;
+  document.getElementById('inp').value='';
+  const prod=byML[code]||byEAN[code];
+  if(!prod){showMsg('✗ Código no encontrado: '+code,'err'); return;}
+  const instr=instrucciones[prod.ml];
+  if(instr&&instr.tipo==='manual'){
+    abrirModal(prod.ml, false);
+    return;
+  }
+  prodScanned[prod.ml]=(prodScanned[prod.ml]||0)+1;
+  const s=prodScanned[prod.ml];
+  if(s>prod.uds) showMsg('⚠ Excedido — '+prod.name+' ('+s+'/'+prod.uds+')','dup');
+  else if(s===prod.uds) showMsg('✓ Completo — '+prod.name,'ok');
+  else showMsg('✓ '+prod.name+' ('+s+'/'+prod.uds+')','ok');
+  guardarTodo(); updateStats(); renderProductos();
+}
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter') go(e.target.value);});
+document.getElementById('inp').addEventListener('input',function(){
+  clearTimeout(this._st); const v=this.value.trim();
+  if(v.length>4) this._st=setTimeout(()=>{if(Date.now()-lastScanT>200) go(v);},80);
+});
+
+// ── CÁMARA ────────────────────────────────────────────────────────────────────
+function switchScan(t){
+  document.querySelectorAll('.ctab').forEach((el,i)=>el.classList.toggle('on',(i===0&&t==='manual')||(i===1&&t==='camera')));
+  document.getElementById('stab-manual').style.display=t==='manual'?'':'none';
+  document.getElementById('stab-camera').style.display=t==='camera'?'':'none';
+  document.getElementById('cbtn').style.display=t==='camera'?'block':'none';
+  if(t==='manual') stopCam();
+}
+function toggleCam(){camOn?stopCam():startCam();}
+function startCam(){
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280}}})
+    .then(s=>{camStream=s;document.getElementById('vid').srcObject=s;document.getElementById('vcont').style.display='block';document.getElementById('cbtn').textContent='Detener cámara';camOn=true;startDetect();})
+    .catch(()=>showMsg('No se pudo acceder a la cámara','err'));
+}
+function stopCam(){
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  if(scanTimer){clearInterval(scanTimer);scanTimer=null;}
+  document.getElementById('vcont').style.display='none';document.getElementById('cbtn').textContent='Activar cámara';camOn=false;
+}
+function startDetect(){
+  if(!('BarcodeDetector' in window)){showMsg('Usá Chrome para la cámara','dup');return;}
+  const det=new BarcodeDetector({formats:['code_128','code_39','ean_13','ean_8','qr_code','itf','upc_a','upc_e']});
+  const v=document.getElementById('vid');
+  scanTimer=setInterval(async()=>{if(v.readyState!==4) return;try{const r=await det.detect(v);if(r.length) go(r[0].rawValue);}catch(e){}},600);
+}
+
+// ── EXPORTAR ──────────────────────────────────────────────────────────────────
+function exportar(){
+  const fecha=new Date().toISOString().slice(0,10);
+  const op=usuarioActual?usuarioActual.nombre+' '+usuarioActual.apellido:'—';
+  const rows=[['Código ML','SKU','Producto','Modo ID','Instrucción','Esperado','Escaneado','Estado','Operario']];
+  const lbls={ok:'Completo',pend:'Pendiente',over:'Excedido',part:'Parcial'};
+  PRODUCTOS.forEach(p=>{
+    const instr=instrucciones[p.ml];
+    rows.push([p.ml,p.sku,p.name,p.mode==='ml'?'Etiq.Obligatorio':'Cód.Universal',instr?instr.tipo:'—',p.uds,prodScanned[p.ml]||0,lbls[getProdStatus(p)],op]);
+  });
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='productos_'+ENVIO_ID+'_'+fecha+'.csv';a.click();
+}
+
+// ── WHATSAPP ──────────────────────────────────────────────────────────────────
+function enviarWA(){
+  const fecha=new Date().toLocaleDateString('es-AR');
+  const hora=new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const op=usuarioActual?usuarioActual.nombre+' '+usuarioActual.apellido:'—';
+  const ok=PRODUCTOS.filter(p=>getProdStatus(p)==='ok').length;
+  const pend=PRODUCTOS.filter(p=>getProdStatus(p)==='pend').length;
+  const part=PRODUCTOS.filter(p=>getProdStatus(p)==='part').length;
+  const over=PRODUCTOS.filter(p=>getProdStatus(p)==='over').length;
+  const tot=PRODUCTOS.reduce((a,p)=>a+p.uds,0);
+  const esc=PRODUCTOS.reduce((a,p)=>a+(prodScanned[p.ml]||0),0);
+  let lineas=[
+    '📦 *Informe de Envío FULL ML*',
+    `Envío: #${ENVIO_ID}`,`Operario: ${op}`,`Fecha: ${fecha} ${hora}`,'',
+    '*MERCADERÍA*',
+    `✅ Completos: ${ok} / ${PRODUCTOS.length} productos`,
+    `📊 Unidades: ${esc} / ${tot}`,
+    part>0?`🟡 Parciales: ${part} productos`:null,
+    over>0?`🔴 Excedidos: ${over} productos`:null,
+    `⏳ Pendientes: ${pend} productos`,
+  ].filter(l=>l!==null);
+  const pendList=PRODUCTOS.filter(p=>['pend','part'].includes(getProdStatus(p))).slice(0,10);
+  if(pendList.length){lineas.push('','*Pendientes/Parciales:*');pendList.forEach(p=>lineas.push(`• ${p.name} (${prodScanned[p.ml]||0}/${p.uds})`));}
+  const overList=PRODUCTOS.filter(p=>getProdStatus(p)==='over');
+  if(overList.length){lineas.push('','*Excedidos:*');overList.forEach(p=>lineas.push(`• ${p.name} (${prodScanned[p.ml]||0}/${p.uds})`));}
+  window.open('https://wa.me/541157001402?text='+encodeURIComponent(lineas.join('\n')),'_blank');
+}
+
+// ── MODAL CANTIDAD MANUAL ─────────────────────────────────────────────────────
+let modalEsInstr=false;
+function abrirModal(ml, esInstr=false){
+  const prod=byML[ml]; if(!prod) return;
+  modalML=ml; modalTab='total'; modalEsInstr=esInstr;
+  const instr=instrucciones[ml]||{};
+  document.getElementById('modal-title').textContent=prod.name;
+  document.getElementById('modal-sub').textContent='Esperado: '+prod.uds+' uds'+(esInstr?' · Ingresá la cantidad manual':'');
+  document.getElementById('m-total').value=instr.qty||'';
+  document.getElementById('m-bultos').value='';document.getElementById('m-uds').value='';
+  document.getElementById('m-result-total').innerHTML='';document.getElementById('m-result-bultos').innerHTML='';
+  document.querySelectorAll('.modal-tab').forEach((t,i)=>t.classList.toggle('on',i===0));
+  document.getElementById('mpanel-total').classList.add('on');document.getElementById('mpanel-bultos').classList.remove('on');
+  document.getElementById('modal').style.display='flex';
+  setTimeout(()=>document.getElementById('m-total').focus(),200);
+  calcTotal();
+}
+function cerrarModal(){document.getElementById('modal').style.display='none';modalML=null;}
+function switchModalTab(tab,btn){
+  modalTab=tab;
+  document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');
+  document.getElementById('mpanel-total').classList.toggle('on',tab==='total');
+  document.getElementById('mpanel-bultos').classList.toggle('on',tab==='bultos');
+}
+function calcTotal(){
+  const prod=byML[modalML];if(!prod) return;
+  const val=parseInt(document.getElementById('m-total').value)||0;
+  const diff=val-prod.uds;
+  let t=`Total: <strong>${val}</strong> de <strong>${prod.uds}</strong>`;
+  if(diff>0) t+=` <span style="color:#D85A30">+${diff} de más</span>`;
+  else if(diff<0) t+=` <span style="color:#BA7517">${Math.abs(diff)} faltan</span>`;
+  else if(val>0) t+=` <span style="color:#1D9E75">✓ Exacto</span>`;
+  document.getElementById('m-result-total').innerHTML=t;
+}
+function calcBultos(){
+  const prod=byML[modalML];if(!prod) return;
+  const b=parseInt(document.getElementById('m-bultos').value)||0;
+  const u=parseInt(document.getElementById('m-uds').value)||0;
+  const total=b*u;const diff=total-prod.uds;
+  let t=`${b} × ${u} = <strong>${total}</strong> de <strong>${prod.uds}</strong>`;
+  if(total>0){if(diff>0) t+=` <span style="color:#D85A30">+${diff} de más</span>`;else if(diff<0) t+=` <span style="color:#BA7517">${Math.abs(diff)} faltan</span>`;else t+=` <span style="color:#1D9E75">✓ Exacto</span>`;}
+  document.getElementById('m-result-bultos').innerHTML=t;
+}
+function confirmarModal(){
+  const prod=byML[modalML];if(!prod) return;
+  let cantidad=0;
+  if(modalTab==='total') cantidad=parseInt(document.getElementById('m-total').value)||0;
+  else{const b=parseInt(document.getElementById('m-bultos').value)||0;const u=parseInt(document.getElementById('m-uds').value)||0;cantidad=b*u;}
+  if(cantidad<0){showMsg('La cantidad no puede ser negativa','err');return;}
+  prodScanned[prod.ml]=cantidad; guardarTodo(); cerrarModal();
+  const st=getProdStatus(prod);
+  const msgs={ok:'✓ Completo',over:'⚠ Excedido',part:'Parcial',pend:'Registrado'};
+  showMsg((msgs[st]||'✓')+' — '+prod.name+' ('+cantidad+'/'+prod.uds+')',st==='over'?'dup':'ok');
+  updateStats(); renderProductos();
+}
+
+// ── LOGIN actualizado con carga desde JSONBin ─────────────────────────────────
+async function doLogin(){
+  const n=document.getElementById('login-nombre').value.trim();
+  const a=document.getElementById('login-apellido').value.trim();
+  const p=document.getElementById('login-pass').value;
+  const u=USUARIOS.find(u=>u.nombre.toLowerCase()===n.toLowerCase()&&u.apellido.toLowerCase()===a.toLowerCase()&&u.pass===p);
+  if(!u){document.getElementById('login-err').style.display='block';return;}
+  usuarioActual=u;
+  document.getElementById('login-err').style.display='none';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('user-nombre').textContent=u.nombre+' '+u.apellido;
+  // Cargar estado desde JSONBin
+  document.getElementById('hdr-sub').textContent='Cargando...';
+  await cargarTodo();
+  actualizarUI();
+  if(!u.admin) iniciarSync();
+}
+
+function cerrarSesion(){
+  if(!confirm('¿Cerrar sesión?')) return;
+  stopCam();
+  if(syncTimer){clearInterval(syncTimer);syncTimer=null;}
+  usuarioActual=null;
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  ['login-nombre','login-apellido','login-pass'].forEach(id=>document.getElementById(id).value='');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+(async function init(){
+  // Solo mostrar estado del envío en login
+  const d = await jbLeer();
+  if(d && d.envioId){
+    const st = d.instrStatus==='confirmed'?' · Listo para escanear':' · Configurando...';
+    document.getElementById('login-envio-info').textContent='Envío #'+d.envioId+st;
+  } else {
+    document.getElementById('login-envio-info').textContent='Sin envío activo';
+  }
+})();
+</script>
+</body>
+</html>
